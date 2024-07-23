@@ -53,10 +53,9 @@ Sync:
 Filas e scheduling:
 
 1. rq + rq-scheduler
-2. huey
 
 Async:
 
 Filas e scheduling:
 
-faststream + apscheduler (redis)
+1. faststream + apscheduler (redis)
