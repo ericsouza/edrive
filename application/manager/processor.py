@@ -14,7 +14,7 @@ def _process_filename(filename):
     print(f"Processando arquivo: {filename}")
 
 
-def start_processor():
+def start():
     # Executa o worker para processar a fila
     with Connection(_redis_conn):
         worker = Worker([_queue])
