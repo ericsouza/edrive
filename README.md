@@ -1,30 +1,30 @@
 fluxo feliz de backup de imagem
 
-manager -> controla tudo
-        -> recebe imagem, salva local e dispara msg para distribuir entre os workers
-        -> ele mesmo recebe a mensagem para processar
-        -> elege o primario e tenta enviar, se falhar elege outro primario
-        -> pós salvar no primario elege secundario e tenta enviar, se falhar elege outro secundario
-        -> salvando no primario e secundario com sucesso é feito:
-            -> salvar no mapa de objetos : {"id_objeto": "primario": "id_worker", "secundario": "id_worker"}
-            -> apaga arquivo do manager
-        -> dispara métricas (sucesso, falha etc). Isso inclui salvar na tabela de object count, disk usage
+manager -> [ ] controla tudo
+        -> [x] recebe imagem, salva local e dispara msg para distribuir entre os workers
+        -> [x] ele mesmo recebe a mensagem para processar
+        -> [ ] elege o primario e tenta enviar, se falhar elege outro primario
+        -> [ ] pós salvar no primario elege secundario e tenta enviar, se falhar elege outro secundario
+        -> [ ] salvando no primario e secundario com sucesso é feito:
+            -> [ ] salvar no mapa de objetos : {"id_objeto": "primario": "id_worker", "secundario": "id_worker"}
+            -> [ ] apaga arquivo do manager
+        -> [ ] dispara métricas (sucesso, falha etc). Isso inclui salvar na tabela de object count, disk usage
 
-worker  -> recebe imagem
-        -> salva local
-        -> devolve info pro manager de sucesso ou falha
+worker  -> [ ] recebe imagem
+        -> [ ] salva local
+        -> [ ] devolve info pro manager de sucesso ou falha
 
 worker saiu da rede, precisamos rebalancear as imagens:
 
 Rebalancamento: processo de encontrar um novo worker para as imagens salvar em um worker que saiu da rede
 
-manager -> percebe que o nó saiu
-        -> busca objetos que aquele nó possuia
-        -> elege um novo primario ou secundario para o objeto
-        -> envia comando para o worker que possui a imagem e ainda está de pé, passando host do novo worker que deve receber a imagem
-        -> se falhar pq o worker elegido não conseguiu, tenta-se outro worker
-        -> ao dar sucesso, atualiza a tabela de objetos
-        -> dispara todas as métricas
+manager -> [ ] percebe que o nó saiu
+        -> [ ] busca objetos que aquele nó possuia
+        -> [ ] elege um novo primario ou secundario para o objeto
+        -> [ ] envia comando para o worker que possui a imagem e ainda está de pé, passando host do novo worker que deve receber a imagem
+        -> [ ] se falhar pq o worker elegido não conseguiu, tenta-se outro worker
+        -> [ ] ao dar sucesso, atualiza a tabela de objetos
+        -> [ ] dispara todas as métricas
 
 
 worker entrou na rede com imagens (ou seja, um worker que caiu e voltou)
