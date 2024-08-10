@@ -1,24 +1,23 @@
 fluxo feliz de backup de imagem
 
-manager -> [ ] controla tudo
+manager -> [x] controla tudo
         -> [x] recebe imagem, salva local e dispara msg para distribuir entre os workers
         -> [x] ele mesmo recebe a mensagem para processar
-        -> [ ] elege o primario e tenta enviar, se falhar elege outro primario
-        -> [ ] pós salvar no primario elege secundario e tenta enviar, se falhar elege outro secundario
-        -> [ ] salvando no primario e secundario com sucesso é feito:
-            -> [ ] salvar no mapa de objetos : {"id_objeto": "primario": "id_worker", "secundario": "id_worker"}
-            -> [ ] apaga arquivo do manager
+        -> [x] elege o primario e envia
+        -> [x] pós salvar no primario elege secundario e envia
+        -> [x] salvando no primario e secundario com sucesso é feito:
+            -> [x] salvar na lista de objetos da rede e de cada worker utilizado
+            -> [x] apaga arquivo do manager
         -> [ ] dispara métricas (sucesso, falha etc). Isso inclui salvar na tabela de object count, disk usage
 
-worker  -> [ ] recebe imagem
-        -> [ ] salva local
-        -> [ ] devolve info pro manager de sucesso ou falha
+worker  -> [x] recebe imagem
+        -> [x] salva local
 
 worker saiu da rede, precisamos rebalancear as imagens:
 
 Rebalancamento: processo de encontrar um novo worker para as imagens salvar em um worker que saiu da rede
 
-manager -> [ ] percebe que o nó saiu
+manager -> [x] percebe que o nó saiu
         -> [ ] busca objetos que aquele nó possuia
         -> [ ] elege um novo primario ou secundario para o objeto
         -> [ ] envia comando para o worker que possui a imagem e ainda está de pé, passando host do novo worker que deve receber a imagem
@@ -45,17 +44,3 @@ Entrada do worker na rede:
     2. Rebaleancer os arquivos: apagando em workers antigos aqueles objetos que o novo node diz possuir
     3. atualizar tabela de objetos
 
-
-Abordagens Sync & Async
-
-Sync:
-
-Filas e scheduling:
-
-1. rq + rq-scheduler
-
-Async:
-
-Filas e scheduling:
-
-1. faststream + apscheduler (redis)

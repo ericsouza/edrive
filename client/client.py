@@ -1,5 +1,6 @@
 import socket
 import struct
+import sys
 
 
 def send_image(filename):
@@ -30,4 +31,4 @@ def send_image(filename):
 
 
 if __name__ == "__main__":
-    send_image("caneca-cebolinha.jpg")
+    send_image(sys.argv[1])

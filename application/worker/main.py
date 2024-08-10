@@ -27,7 +27,6 @@ def handle_client(connection):
 
         # Recebe o nome do arquivo
         filename = connection.recv(msglen).decode().strip()
-
         # Abre um arquivo para escrita
         with open(filename, "wb") as f:
             while True:
@@ -35,8 +34,7 @@ def handle_client(connection):
                 if not data:
                     break
                 f.write(data)
-
-        logging.info(f"Imagem salva como {filename}")
+        print(f"Imagem salva como {filename}")
 
     except Exception as e:
         logging.error(f"Erro ao salvar o arquivo: {e}")

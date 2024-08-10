@@ -1,5 +1,6 @@
 from socket import socket, AF_INET, SOCK_STREAM
 
+
 class Client:
     def __init__(self, host: str, port: int = 33007):
         self.host = host
@@ -12,5 +13,3 @@ class Client:
         response = socket_client.recv(1024)
         print("from server: ", response.decode())
         socket_client.close()
-
-

@@ -10,17 +10,21 @@ def handle_worker(connection, address):
                 break
             payload: str = data.decode()
             command, whost, wport = payload.split(":")
-            worker = Worker(whost, wport)
             if command == "connect":
                 try:
+                    worker = Worker(whost, int(wport))
                     db.add_worker(worker)
                     print(f"New {worker} connected to cluster")
                     current_workers = db.get_all_workers()
-                    print(f"Currently there are {len(current_workers)} available workers: ", current_workers)
+                    print(
+                        f"Currently there are {len(current_workers)} available workers: ",
+                        current_workers,
+                    )
                     connection.sendall("connect:success".encode())
                 except WorkerAlreadyConnected:
+                    worker = db.get_worker(host=whost, port=int(wport))
                     db.mark_keepalive(worker)
-                    print("Received keep alive from", worker)
+                    # print("Received keep alive from", worker.key)
                     connection.sendall("keepalive:success".encode())
             else:
                 connection.sendall("badrequest".encode())

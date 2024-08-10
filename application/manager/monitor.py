@@ -10,9 +10,14 @@ def monitor_workers():
         sleep(25)
 
         workers = db.get_all_workers()
+        print(workers)
         for worker in workers:
             keepalive = db.get_keepalive(worker)
-            is_alive = keepalive is not None and datetime.now() <= datetime.fromtimestamp(float(keepalive)) + timedelta(seconds=30)
+            is_alive = (
+                keepalive is not None
+                and datetime.now()
+                <= datetime.fromtimestamp(float(keepalive)) + timedelta(seconds=30)
+            )
             if not is_alive:
                 msg = f"Removing {worker} from available workers because no keepalive was seen."
                 if keepalive:
@@ -21,6 +26,7 @@ def monitor_workers():
                 # precisamos remove-lo da lista de disponíveis
                 logging.warning(msg)
                 db.remove_worker(worker)
+
 
 def start():
     monitor_thread = threading.Thread(target=monitor_workers, daemon=True)
