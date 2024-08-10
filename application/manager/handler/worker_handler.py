@@ -1,25 +1,29 @@
 import db
+from db import Worker, WorkerAlreadyConnected
 
 
 def handle_worker(connection, address):
     try:
-        print(f"Conexão estabelecida com {address}")
         while True:
             data = connection.recv(1024)
             if not data:
                 break
             payload: str = data.decode()
-            command, whost, wip = payload.split(":")
+            command, whost, wport = payload.split(":")
+            worker = Worker(whost, wport)
             if command == "connect":
-                print(f"Solicitação de conexão recebida: {whost}:{wip}")
-                db.workers[f"{whost}:{wip}"] = {"status": "up"}
-                connection.sendall("conexao estabelecida, bem vindo a rede".encode())
-            elif command == "keepalive":
-                print(f"Keep alive recebido de: {whost}:{wip}")
-                connection.sendall("parabens por continuar vivo".encode())
+                try:
+                    db.add_worker(worker)
+                    print(f"New {worker} connected to cluster")
+                    current_workers = db.get_all_workers()
+                    print(f"Currently there are {len(current_workers)} available workers: ", current_workers)
+                    connection.sendall("connect:success".encode())
+                except WorkerAlreadyConnected:
+                    db.mark_keepalive(worker)
+                    print("Received keep alive from", worker)
+                    connection.sendall("keepalive:success".encode())
             else:
-                print("nada a ver oq tu mandou ai")
-                connection.sendall("bad request".encode())
+                connection.sendall("badrequest".encode())
     except Exception as e:
         print(f"Erro ao lidar com worker {address}", e)
 

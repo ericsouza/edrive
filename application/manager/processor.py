@@ -1,43 +1,32 @@
 import struct
 import socket
 from redis import Redis
-from rq import Queue, Connection, Worker
+from rq import Queue, Connection
+from rq import Worker as RqWorker
 import random
-
-servers = [
-    {
-        "id": 1,
-        "host": "127.0.0.1",
-        "port": 30001,
-    },
-    {
-        "id": 2,
-        "host": "127.0.0.1",
-        "port": 30002,
-    },
-    {
-        "id": 3,
-        "host": "127.0.0.1",
-        "port": 30003,
-    },
-]
+import db
+from db import Worker
 
 
-def send_image(filename, server_id, server_host, server_port):
+def send_image(filename, worker: Worker):
     try:
+        print(f"types: {type(worker.host)}  --- {type(worker.port)}")
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((server_host, server_port))
+        client_socket.connect((worker.host, worker.port))
 
         # Envia o tamanho do nome do arquivo
         name, extension = filename.split(".")
-        filename = f"{name}-{server_id}.{extension}"
+        filename = f"{name}-{worker.port}.{extension}"
         filename_bytes = filename.encode()
+        print("debug 1")
         filename_len = struct.pack(">I", len(filename_bytes))
+        print("debug 2")
         client_socket.sendall(filename_len)
 
         # Envia o nome do arquivo
+        print("debug 3")
         client_socket.sendall(filename_bytes)
-
+        print("debug 4")
         # Envia o arquivo
         with open(f"files/{name}.{extension}", "rb") as f:
             while chunk := f.read(8192):  # Lê em blocos maiores
@@ -63,29 +52,26 @@ def enqueue_image(filename):
 
 def _process_file(filename):
     print(f"Processando arquivo: {filename}")
-    selected_primary = select_server()
+    primary_worker = select_worker()
     send_image(
         filename=filename,
-        server_id=selected_primary["id"],
-        server_host=selected_primary["host"],
-        server_port=selected_primary["port"],
+        worker=primary_worker,
     )
-    selected_secondary = select_server(exclude_ids=[selected_primary["id"]])
+    secondary_worker = select_worker(exclude=[primary_worker])
     send_image(
         filename=filename,
-        server_id=selected_secondary["id"],
-        server_host=selected_secondary["host"],
-        server_port=selected_secondary["port"],
+        worker=secondary_worker,
     )
 
 
-def select_server(exclude_ids: list[str] = []):
-    available_servers = [sv for sv in servers if sv["id"] not in exclude_ids]
-    return random.choice(available_servers)
+def select_worker(exclude: list[Worker] = []):
+    workers = db.get_all_workers()
+    available_workers = [w for w in workers if w not in exclude]
+    return random.choice(available_workers)
 
 
 def start():
     # Executa o worker para processar a fila
     with Connection(_redis_conn):
-        worker = Worker([_queue])
-        worker.work()
+        rq_worker = RqWorker([_queue])
+        rq_worker.work()
