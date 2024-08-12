@@ -82,7 +82,6 @@ def get_all_workers() -> list[Worker]:
 
 
 def remove_worker(worker: Worker, filenames):
-    print("filenames: ", filenames)
     for filename in filenames:
         remove_worker_from_object(filename, worker)
     _r.delete(worker.keepalive_key)

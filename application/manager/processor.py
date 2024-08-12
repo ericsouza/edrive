@@ -8,7 +8,7 @@ import os
 from db import Worker
 
 
-def send_image(filename, worker: Worker):
+def send_image(filename, worker: Worker) -> int:
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect((worker.host, worker.port))
@@ -30,7 +30,7 @@ def send_image(filename, worker: Worker):
         file_size = os.stat(f"files/{filename}").st_size
         db.add_object_to_worker(worker, filename, file_size)
         print(f"Imagem {filename} enviada para: ", worker.key)
-
+        return file_size
     except Exception as e:
         print(f"Erro ao enviar o arquivo: {e}")
 
@@ -55,16 +55,17 @@ def _process_file(filename):
     # essa atualização seja feita nos servidores onde o objeto já existe.
     # o parametro include serve justamente pra forçarmos os servidores
     include = stored_object.workers if stored_object else []
-    print("INCLUDE: ", include)
     primary_worker = select_worker(include=include)
-    send_image(
+    sent_file_size = send_image(
         filename=filename,
         worker=primary_worker,
     )
     secondary_worker = select_worker(exclude=[primary_worker], include=include)
-    send_image(
-        filename=filename,
-        worker=secondary_worker,
+    send_copy_command(
+        filename,
+        file_size=sent_file_size,
+        from_worker=primary_worker,
+        to_worker=secondary_worker,
     )
     # Remove do servidor principal após subir as 2 cópias para os workers
     os.remove(f"files/{filename}")
@@ -108,7 +109,6 @@ def send_copy_command(
         # Envia o novo worker a salvar uma copia
         client_socket.sendall(to_worker.key.encode())
         db.add_object_to_worker(to_worker, filename, file_size)
-        db.add_object(filename, [from_worker, to_worker])
         print(
             f"Cópia de {from_worker.key} do objeto {filename} enviada para {to_worker.key}"
         )
@@ -131,6 +131,7 @@ def _process_dead_worker(dead_worker: Worker):
             from_worker = [w for w in obj.workers if w != dead_worker][0]
             to_worker = select_worker(exclude=[dead_worker, from_worker])
             send_copy_command(filename, file_size, from_worker, to_worker)
+            db.add_object(filename, [from_worker, to_worker])
     db.remove_worker(dead_worker, [fn.split(":")[0] for fn in files])
 
 
