@@ -4,8 +4,15 @@ import struct
 from os import getenv
 from time import sleep
 import logging
+from pathlib import Path
+import shutil
 
 worker_port = int(getenv("EDRIVE_WORKER_PORT"))
+
+FILES_FOLDER_NAME = f"./files-{worker_port}"
+
+shutil.rmtree(FILES_FOLDER_NAME, ignore_errors=True)
+Path(FILES_FOLDER_NAME).mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
@@ -17,9 +24,66 @@ logging.basicConfig(
 class ConnectionToManagerRefused(Exception): ...
 
 
-def handle_client(connection):
+def copy_object_to_worker(filename: str, whost, wport):
     try:
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((whost, wport))
+
+        # envia o tipo de comando
+        client_socket.sendall("up".encode())
+
+        # Envia o tamanho do nome do arquivo
+        filename_bytes = filename.encode()
+        filename_len = struct.pack(">I", len(filename_bytes))
+        client_socket.sendall(filename_len)
+
+        # Envia o nome do arquivo
+        client_socket.sendall(filename_bytes)
+        # Envia o arquivo
+        with open(f"{FILES_FOLDER_NAME}/{filename}", "rb") as f:
+            while chunk := f.read(8192):  # Lê em blocos maiores
+                client_socket.sendall(chunk)
+
+    except Exception as e:
+        print(f"Erro ao copiar o arquivo {filename}. Erro: {e}")
+
+    finally:
+        client_socket.close()
+
+
+def upload_handler(connection: socket.socket, filename: str):
+    # Abre um arquivo para escrita
+    with open(f"{FILES_FOLDER_NAME}/{filename}", "wb") as f:
+        while True:
+            data = connection.recv(8192)  # Lê em blocos maiores
+            if not data:
+                break
+            f.write(data)
+    print(f"Imagem salva como {filename}")
+
+
+def copy_object_handler(connection: socket.socket, filename: str):
+    new_worker = connection.recv(1024).decode()
+    new_worker_host, new_worker_port = new_worker.split(":")
+    logging.info(f"Copiando arquivo {filename} para {new_worker}")
+    print(f"Copiando arquivo {filename} para {new_worker}")
+    copy_object_to_worker(filename, new_worker_host, int(new_worker_port))
+
+
+router = {"up": upload_handler, "cp": copy_object_handler}
+
+
+def handle_client(connection: socket.socket):
+    try:
+        # Available commands: up,cp,de,dl
+        # Onde:
+        #   up -> upload (indica que um object deve ser salva no servidor)
+        #   cp -> copy (indica que um object deve ser copiada para outro servidor)
+        #   de -> delete (indica que um object deve ser apagada)
+        #   dl -> download (indica que um object foi requisitado para download)
+
         # Recebe o tamanho do nome do arquivo
+        command = connection.recv(2).decode()
         raw_msglen = connection.recv(4)
         if not raw_msglen:
             return
@@ -27,14 +91,11 @@ def handle_client(connection):
 
         # Recebe o nome do arquivo
         filename = connection.recv(msglen).decode().strip()
-        # Abre um arquivo para escrita
-        with open(filename, "wb") as f:
-            while True:
-                data = connection.recv(8192)  # Lê em blocos maiores
-                if not data:
-                    break
-                f.write(data)
-        print(f"Imagem salva como {filename}")
+
+        logging.info(f"Received {command} for {filename}")
+
+        # repassa para o handler adequado
+        router[command](connection, filename)
 
     except Exception as e:
         logging.error(f"Erro ao salvar o arquivo: {e}")

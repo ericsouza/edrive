@@ -81,9 +81,14 @@ def get_all_workers() -> list[Worker]:
     return workers
 
 
-def remove_worker(worker: Worker):
-    _r.lrem(WORKERS_LIST_KEY, 1, worker.key)
+def remove_worker(worker: Worker, filenames):
+    print("filenames: ", filenames)
+    for filename in filenames:
+        remove_worker_from_object(filename, worker)
     _r.delete(worker.keepalive_key)
+    _r.delete(worker.objects_key)
+    _r.delete(worker.used_storage_key)
+    _r.lrem(WORKERS_LIST_KEY, 1, worker.key)
 
 
 def mark_keepalive(worker: Worker) -> None:
@@ -131,6 +136,15 @@ def get_object_by(filename: str) -> StoredObject:
     file_obj_data = _r.get(f"file:{filename}")
     if file_obj_data:
         return StoredObject.from_db(filename, file_obj_data)
+
+
+def remove_worker_from_object(filename: str, worker: Worker):
+    stored_object = get_object_by(filename)
+    try:
+        stored_object.workers.remove(worker)
+    except ValueError:
+        ...
+    add_object(stored_object.filename, stored_object.workers)
 
 
 def add_object(filename, workers: list[Worker]):

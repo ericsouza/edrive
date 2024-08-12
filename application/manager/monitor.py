@@ -3,6 +3,7 @@ from time import sleep
 import logging
 import threading
 from datetime import datetime, timedelta
+from processor import enqueue_worker_died
 
 
 def monitor_workers():
@@ -10,7 +11,6 @@ def monitor_workers():
         sleep(25)
 
         workers = db.get_all_workers()
-        print(workers)
         for worker in workers:
             keepalive = db.get_keepalive(worker)
             is_alive = (
@@ -19,13 +19,13 @@ def monitor_workers():
                 <= datetime.fromtimestamp(float(keepalive)) + timedelta(seconds=30)
             )
             if not is_alive:
-                msg = f"Removing {worker} from available workers because no keepalive was seen."
+                msg = f"{worker} will be removed from available workers because no keepalive was seen."
                 if keepalive:
                     msg = f"{msg} Last keepalive was at {datetime.fromtimestamp(float(keepalive))}"
                 # servidor não mandou keepalive há muito tempo
                 # precisamos remove-lo da lista de disponíveis
                 logging.warning(msg)
-                db.remove_worker(worker)
+                enqueue_worker_died(worker)
 
 
 def start():
