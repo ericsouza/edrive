@@ -1,11 +1,12 @@
 import redis
+from os import environ
 
 WORKERS_LIST_KEY = "workers"
 
-_r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+REDIS_HOST = environ.get("REDIS_HOST", "127.0.0.1")
 
 
-class WorkerAlreadyConnected(Exception): ...
+_r = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 
 class Worker:
@@ -66,8 +67,10 @@ def get_all_workers() -> list[Worker]:
         workers.append(Worker.from_db(key=worker, used_storage=used_storage))
     return workers
 
+
 def get_keepalive(worker: Worker) -> bool:
     return _r.get(worker.keepalive_key)
+
 
 def get_all_objects_by(worker: Worker):
     return _r.lrange(worker.objects_key, 0, -1)
@@ -85,4 +88,3 @@ def get_object_by(filename: str) -> StoredObject:
     file_obj_data = _r.get(f"file:{filename}")
     if file_obj_data:
         return StoredObject.from_db(filename, file_obj_data)
-

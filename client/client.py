@@ -1,6 +1,8 @@
 import socket
 import struct
 import sys
+import concurrent.futures
+from os import environ
 
 
 def send_image(filename):
@@ -31,4 +33,6 @@ def send_image(filename):
 
 
 if __name__ == "__main__":
-    send_image(sys.argv[1])
+    objects_to_backup = sys.argv[1:]
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = list(executor.map(send_image, objects_to_backup))

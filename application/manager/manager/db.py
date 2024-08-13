@@ -1,9 +1,12 @@
 import redis
+from os import environ
 from datetime import datetime, timedelta
 
 WORKERS_LIST_KEY = "workers"
 
-_r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+REDIS_HOST = environ.get("REDIS_HOST", "127.0.0.1")
+
+_r = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 
 class WorkerAlreadyConnected(Exception): ...

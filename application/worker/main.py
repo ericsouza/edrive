@@ -1,15 +1,26 @@
 import threading
 import socket
 import struct
-from os import getenv
+from os import environ
 from time import sleep
 import logging
 from pathlib import Path
 import shutil
 
-worker_port = int(getenv("EDRIVE_WORKER_PORT"))
+deployment_mode = environ.get("DEPLOYMENT_MODE", "local")
 
-FILES_FOLDER_NAME = f"./files-{worker_port}"
+MANAGER_HOST = environ.get("MANAGER_HOST", "127.0.0.1")
+HOST_TO_SERVE = "0.0.0.0"
+WORKER_PUBLIC_HOST = environ.get("WORKER_NAME")
+worker_port = 31000
+
+
+FILES_FOLDER_NAME = "./files"
+if deployment_mode == "local":
+    worker_port = int(environ.get("EDRIVE_WORKER_PORT"))
+    HOST_TO_SERVE = "127.0.0.1"
+    WORKER_PUBLIC_HOST = "127.0.0.1"
+    FILES_FOLDER_NAME = f"./files-{worker_port}"
 
 shutil.rmtree(FILES_FOLDER_NAME, ignore_errors=True)
 Path(FILES_FOLDER_NAME).mkdir(parents=True, exist_ok=True)
@@ -106,10 +117,10 @@ def handle_client(connection: socket.socket):
 
 def _run_worker(worker_port: int = worker_port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", worker_port))
+        s.bind((HOST_TO_SERVE, worker_port))
         s.listen()
 
-        logging.info(f"Servidor escutando em 127.0.0.1:{worker_port}")
+        logging.info(f"Servidor escutando em {HOST_TO_SERVE}:{worker_port}")
         while True:
             conn, addr = s.accept()
             logging.info(f"Conexão estabelecida com {addr}")
@@ -148,12 +159,12 @@ def connect(worker_port: int = worker_port, retries: int = 3):
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
             # Conectar ao servidor
-            manager_address = ("127.0.0.1", 37127)
+            manager_address = (MANAGER_HOST, 37127)
 
             client_socket.connect(manager_address)
 
             # Enviar dados
-            message = f"connect:127.0.0.1:{worker_port}"
+            message = f"connect:{WORKER_PUBLIC_HOST}:{worker_port}"
             client_socket.sendall(message.encode())
 
             # Receber resposta
@@ -181,4 +192,5 @@ def start():
 
 
 if __name__ == "__main__":
+    print("Iniciando worker")
     start()

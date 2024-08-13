@@ -6,7 +6,9 @@ from rq import Worker as RqWorker
 import db
 import os
 from db import Worker
+from  os import environ
 
+REDIS_HOST = environ.get("REDIS_HOST", "127.0.0.1")
 
 def send_image(filename, worker: Worker) -> int:
     try:
@@ -39,7 +41,7 @@ def send_image(filename, worker: Worker) -> int:
 
 
 # Conexão com o Redis
-_redis_conn = Redis()
+_redis_conn = Redis(host=REDIS_HOST)
 _queue = Queue(name="image_processor_queue", connection=_redis_conn)
 
 
@@ -61,6 +63,7 @@ def _process_file(filename):
         worker=primary_worker,
     )
     secondary_worker = select_worker(exclude=[primary_worker], include=include)
+    # envia copy command para que o primário mande o objeto pro secundário
     send_copy_command(
         filename,
         file_size=sent_file_size,

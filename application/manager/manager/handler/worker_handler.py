@@ -15,6 +15,7 @@ def handle_worker(connection, address):
                     worker = Worker(whost, int(wport))
                     db.add_worker(worker)
                     print(f"New {worker} connected to cluster")
+                    db.mark_keepalive(worker)
                     current_workers = db.get_all_workers()
                     print(
                         f"Currently there are {len(current_workers)} available workers: ",

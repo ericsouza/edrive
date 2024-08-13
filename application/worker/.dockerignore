@@ -1,0 +1,42 @@
+# Ignorar arquivos e diretórios comuns
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Ignorar arquivos de logs
+*.log
+*.txt
+
+# Ignorar arquivos de ambientes virtuais
+venv/
+env/
+ENV/
+.venv/
+
+# Ignorar arquivos de pacotes instalados via pip
+*.egg-info/
+.eggs/
+pip-selfcheck.json
+
+# Ignorar arquivos de cache e configuração do editor
+*.swp
+*~
+.vscode/
+.idea/
+*.sublime*
+
+# Ignorar arquivos de dependências (se for usar requirements.txt no Docker)
+*.lock
+Pipfile.lock
+poetry.lock
+
+# Ignorar arquivos de configuração locais
+*.env
+.env.*
+
+
+files/
+
+!requirements.txt

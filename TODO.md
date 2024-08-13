@@ -1,9 +1,8 @@
-- [ ] Colocar o que falta do que o professor pediu
+- [x] Colocar o que falta do que o professor pediu
     - [ ] docs
 - [ ] Escolher 1 para evoluir apresentação:
     - [ ] Melhor experiencia de subir local usando docker/docker-compose
     - [ ] Possibilidade de baixar e apagar imagens
-    - [ ] Interface gráfica web para subir e baixar arquivos
-    - [ ] Enviar várias imagens ao mesmo tempo usando concurrent.Threads
-    - [ ] Interface admin para ver as informações do cluster
-        - [ ] Workers ativos, objetos salvos e suas localizações. Uso de dados separados por cada worker.
+    - [x] Enviar várias imagens ao mesmo tempo usando concurrent.Threads
+    - [x] Interface admin para ver as informações do cluster
+        - [x] Workers ativos, objetos salvos e suas localizações. Uso de dados separados por cada worker.

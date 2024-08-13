@@ -11,4 +11,81 @@ services:
       - edrive
     ports:
       - 6379:6379
+  
+  manager:
+    build:
+      context: ./manager
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+    networks:
+      - edrive
+    depends_on:
+      - redis
+    ports:
+      - 33007:33007
+
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+    networks:
+      - edrive
+    ports:
+      - 5000:5000
+    depends_on:
+      - redis
+      - manager
+
+  # worker-1:
+  #   build:
+  #     context: ./worker
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     MANAGER_HOST: manager
+  #     WORKER_NAME: 'worker-1'
+  #   networks:
+  #     - edrive
+  #   depends_on:
+  #     - manager
+  
+  # worker-2:
+  #   build:
+  #     context: ./worker
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     MANAGER_HOST: manager
+  #     WORKER_NAME: 'worker-2'
+  #   networks:
+  #     - edrive
+  #   depends_on:
+  #     - manager
+  
+  # worker-3:
+  #   build:
+  #     context: ./worker
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     MANAGER_HOST: manager
+  #     WORKER_NAME: 'worker-3'
+  #   networks:
+  #     - edrive
+  #   depends_on:
+  #     - manager
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    environment:
+      MANAGER_HOST: manager
+      WORKER_NAME: 'worker-1'
+      REPLICA: "{{.Task.Slot}}"
+    networks:
+      - edrive
+    depends_on:
+      - manager
+     # Número de réplicas configurável
 

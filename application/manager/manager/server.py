@@ -1,15 +1,22 @@
 import socket
 import threading
+from os import environ
 
 from handler.worker_handler import handle_worker
 from handler.client_handler import handle_client
 
+deployment_mode = environ.get("DEPLOYMENT_MODE", "local")
+
+HOST_TO_SERVE = "0.0.0.0"
+
+if deployment_mode == "local":
+    HOST_TO_SERVE = "127.0.0.1"
 
 def _run_manager_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(("127.0.0.1", 37127))
+    server.bind((HOST_TO_SERVE, 37127))
     server.listen(5)
-    print("Servidor de controle rodando em 127.0.0.1:37127")
+    print(f"Servidor de controle rodando em {HOST_TO_SERVE}:37127")
 
     while True:
         client_socket, addr = server.accept()
@@ -25,9 +32,9 @@ def _run_manager_server():
 
 def _run_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(("127.0.0.1", 33007))
+    server.bind((HOST_TO_SERVE, 33007))
     server.listen(5)
-    print("Servidor escutando em 127.0.0.1:33007")
+    print(f"Servidor escutando em {HOST_TO_SERVE}:33007")
 
     while True:
         client_socket, addr = server.accept()

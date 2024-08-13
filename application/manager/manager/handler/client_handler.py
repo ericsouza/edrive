@@ -27,8 +27,8 @@ def handle_client(connection):
         # Envia o nome do arquivo para a fila
         enqueue_image(filename)
 
-    except Exception as e:
-        print(f"Erro ao salvar o arquivo: {e}")
+    # except Exception as e:
+    #     print(f"Erro ao salvar o arquivo: {e}")
 
     finally:
         connection.close()
