@@ -39,53 +39,15 @@ services:
       - redis
       - manager
 
-  # worker-1:
-  #   build:
-  #     context: ./worker
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     MANAGER_HOST: manager
-  #     WORKER_NAME: 'worker-1'
-  #   networks:
-  #     - edrive
-  #   depends_on:
-  #     - manager
-  
-  # worker-2:
-  #   build:
-  #     context: ./worker
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     MANAGER_HOST: manager
-  #     WORKER_NAME: 'worker-2'
-  #   networks:
-  #     - edrive
-  #   depends_on:
-  #     - manager
-  
-  # worker-3:
-  #   build:
-  #     context: ./worker
-  #     dockerfile: Dockerfile
-  #   environment:
-  #     MANAGER_HOST: manager
-  #     WORKER_NAME: 'worker-3'
-  #   networks:
-  #     - edrive
-  #   depends_on:
-  #     - manager
-
   worker:
     build:
       context: ./worker
       dockerfile: Dockerfile
     environment:
       MANAGER_HOST: manager
-      WORKER_NAME: 'worker-1'
-      REPLICA: "{{.Task.Slot}}"
     networks:
       - edrive
     depends_on:
       - manager
-     # Número de réplicas configurável
-
+    deploy:
+      replicas: 3

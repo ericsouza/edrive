@@ -11,7 +11,7 @@ deployment_mode = environ.get("DEPLOYMENT_MODE", "local")
 
 MANAGER_HOST = environ.get("MANAGER_HOST", "127.0.0.1")
 HOST_TO_SERVE = "0.0.0.0"
-WORKER_PUBLIC_HOST = environ.get("WORKER_NAME")
+WORKER_PUBLIC_HOST = socket.gethostname()
 worker_port = 31000
 
 
