@@ -170,5 +170,6 @@ cython_debug/
 *.tiff
 
 # Exceto essas imagens específicas
-!caneca-cebolinha.jpg
-!caneca-cebolinha.jpeg
+!client/caneca-cebolinha.jpg
+!client/firewatch.jpg
+!client/sonic-2.png

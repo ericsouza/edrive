@@ -17,7 +17,10 @@ worker_port = 31000
 
 FILES_FOLDER_NAME = "./files"
 if deployment_mode == "local":
-    worker_port = int(environ.get("EDRIVE_WORKER_PORT"))
+    if not environ.get("EDRIVE_WORKER_PORT"):
+        print("Missing required environment variable: EDRIVE_WORKER_PORT")
+        exit(1)
+    worker_port = int()
     HOST_TO_SERVE = "127.0.0.1"
     WORKER_PUBLIC_HOST = "127.0.0.1"
     FILES_FOLDER_NAME = f"./files-{worker_port}"

@@ -8,7 +8,7 @@ from processor import enqueue_worker_died
 
 def monitor_workers():
     while True:
-        sleep(25)
+        sleep(10)
 
         workers = db.get_all_workers()
         for worker in workers:
