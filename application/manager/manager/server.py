@@ -1,7 +1,7 @@
 import socket
 import threading
 from os import environ
-
+import logging
 from handler.worker_handler import handle_worker
 from handler.client_handler import handle_client
 
@@ -16,7 +16,7 @@ def _run_manager_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST_TO_SERVE, 37127))
     server.listen(5)
-    print(f"Servidor de controle rodando em {HOST_TO_SERVE}:37127")
+    logging.info(f"Servidor de controle rodando em {HOST_TO_SERVE}:37127")
 
     while True:
         client_socket, addr = server.accept()
@@ -34,11 +34,11 @@ def _run_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST_TO_SERVE, 33007))
     server.listen(5)
-    print(f"Servidor escutando em {HOST_TO_SERVE}:33007")
+    logging.info(f"Servidor escutando em {HOST_TO_SERVE}:33007")
 
     while True:
         client_socket, addr = server.accept()
-        print(f"Conexão estabelecida com {addr}")
+        logging.info(f"Conexão estabelecida com {addr}")
         client_handler = threading.Thread(target=handle_client, args=(client_socket,))
         client_handler.start()
 

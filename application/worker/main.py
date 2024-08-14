@@ -1,38 +1,41 @@
 import threading
 import socket
 import struct
-from os import environ
+from os import environ, stat
 from time import sleep
 import logging
 from pathlib import Path
 import shutil
+import db
+import time
+
+logging.basicConfig(
+    format="{asctime} - {levelname} - {message}",
+    style="{",
+    datefmt="%Y-%m-%d %H:%M",
+    level=logging.INFO
+)
 
 deployment_mode = environ.get("DEPLOYMENT_MODE", "local")
 
 MANAGER_HOST = environ.get("MANAGER_HOST", "127.0.0.1")
 HOST_TO_SERVE = "0.0.0.0"
-WORKER_PUBLIC_HOST = socket.gethostname()
+worker_public_host = socket.gethostname()
 worker_port = 31000
 
 
 FILES_FOLDER_NAME = "./files"
 if deployment_mode == "local":
     if not environ.get("EDRIVE_WORKER_PORT"):
-        print("Missing required environment variable: EDRIVE_WORKER_PORT")
+        logging.warn("Missing required environment variable: EDRIVE_WORKER_PORT")
         exit(1)
-    worker_port = int()
+    worker_port = int(environ.get("EDRIVE_WORKER_PORT"))
     HOST_TO_SERVE = "127.0.0.1"
-    WORKER_PUBLIC_HOST = "127.0.0.1"
+    worker_public_host = "127.0.0.1"
     FILES_FOLDER_NAME = f"./files-{worker_port}"
 
 shutil.rmtree(FILES_FOLDER_NAME, ignore_errors=True)
 Path(FILES_FOLDER_NAME).mkdir(parents=True, exist_ok=True)
-
-logging.basicConfig(
-    format="{asctime} - {levelname} - {message}",
-    style="{",
-    datefmt="%Y-%m-%d %H:%M",
-)
 
 
 class ConnectionToManagerRefused(Exception): ...
@@ -57,9 +60,11 @@ def copy_object_to_worker(filename: str, whost, wport):
         with open(f"{FILES_FOLDER_NAME}/{filename}", "rb") as f:
             while chunk := f.read(8192):  # Lê em blocos maiores
                 client_socket.sendall(chunk)
-
+        file_size = stat(f"{FILES_FOLDER_NAME}/{filename}").st_size
+        db.add_object_to_worker(worker_public_host, worker_port, filename, file_size)
+        db.add_object(filename, worker_public_host, worker_port)
     except Exception as e:
-        print(f"Erro ao copiar o arquivo {filename}. Erro: {e}")
+        logging.error(f"Erro ao copiar o arquivo {filename}. Erro: {e}")
 
     finally:
         client_socket.close()
@@ -73,14 +78,19 @@ def upload_handler(connection: socket.socket, filename: str):
             if not data:
                 break
             f.write(data)
-    print(f"Imagem salva como {filename}")
+            
+    file_size = stat(f"{FILES_FOLDER_NAME}/{filename}").st_size
+    db.add_object_to_worker(worker_public_host, worker_port, filename, file_size)
+    db.add_object(filename, worker_public_host, worker_port)
+
+    logging.info(f"Imagem salva como {filename}")
 
 
 def copy_object_handler(connection: socket.socket, filename: str):
     new_worker = connection.recv(1024).decode()
     new_worker_host, new_worker_port = new_worker.split(":")
     logging.info(f"Copiando arquivo {filename} para {new_worker}")
-    print(f"Copiando arquivo {filename} para {new_worker}")
+    time.sleep(2)
     copy_object_to_worker(filename, new_worker_host, int(new_worker_port))
 
 
@@ -136,7 +146,7 @@ def keepalive_updater():
     sleep(10)
     while True:
         try:
-            connect(retries=0)
+            connect(retries=0, is_keepalive=True)
             if error_count >= 3:
                 logging.info("connection to manager restablished")
             error_count = 0
@@ -152,7 +162,8 @@ def keepalive_updater():
             sleep(12)
 
 
-def connect(worker_port: int = worker_port, retries: int = 3):
+def connect(worker_port: int = worker_port, retries: int = 3, is_keepalive = False):
+    global worker_public_host
     count = 0
     connected = False
 
@@ -167,13 +178,12 @@ def connect(worker_port: int = worker_port, retries: int = 3):
             client_socket.connect(manager_address)
 
             # Enviar dados
-            message = f"connect:{WORKER_PUBLIC_HOST}:{worker_port}"
+            message = f"connect:{worker_port}"
             client_socket.sendall(message.encode())
 
-            # Receber resposta
-            data = client_socket.recv(1024)
-            print(f"Recebido: {data.decode()}")
-
+            # Se for o connect então salvo o public host
+            if not is_keepalive:
+                worker_public_host = client_socket.recv(1024).decode()
             # Fechar a conexão
             client_socket.close()
             connected = True
@@ -195,5 +205,5 @@ def start():
 
 
 if __name__ == "__main__":
-    print("Iniciando worker")
+    logging.info("Iniciando worker")
     start()

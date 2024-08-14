@@ -7,6 +7,8 @@ import db
 import os
 from db import Worker
 from  os import environ
+import service
+import logging
 
 REDIS_HOST = environ.get("REDIS_HOST", "127.0.0.1")
 
@@ -31,10 +33,10 @@ def send_image(filename, worker: Worker) -> int:
                 client_socket.sendall(chunk)
         file_size = os.stat(f"files/{filename}").st_size
         db.add_object_to_worker(worker, filename, file_size)
-        print(f"Imagem {filename} enviada para: ", worker.key)
+        logging.info(f"Imagem {filename} enviada para: {worker.key}")
         return file_size
     except Exception as e:
-        print(f"Erro ao enviar o arquivo: {e}")
+        logging.error(f"Erro ao enviar o arquivo: {e}", e)
 
     finally:
         client_socket.close()
@@ -50,19 +52,19 @@ def enqueue_image(filename):
 
 
 def _process_file(filename):
-    print(f"Processando arquivo: {filename}")
+    logging.info(f"Processando arquivo: {filename}")
     stored_object = db.get_object_by(filename)
     # se o arquivo já existe e estamos recebendo uma nova copia
     # então, na realidade temos uma atualização e precisamos forçar que
     # essa atualização seja feita nos servidores onde o objeto já existe.
     # o parametro include serve justamente pra forçarmos os servidores
     include = stored_object.workers if stored_object else []
-    primary_worker = select_worker(include=include)
+    primary_worker = service.select_worker(include=include)
     sent_file_size = send_image(
         filename=filename,
         worker=primary_worker,
     )
-    secondary_worker = select_worker(exclude=[primary_worker], include=include)
+    secondary_worker = service.select_worker(exclude=[primary_worker], include=include)
     # envia copy command para que o primário mande o objeto pro secundário
     send_copy_command(
         filename,
@@ -73,19 +75,6 @@ def _process_file(filename):
     # Remove do servidor principal após subir as 2 cópias para os workers
     os.remove(f"files/{filename}")
     db.add_object(filename, [primary_worker, secondary_worker])
-
-
-def select_worker(exclude: list[Worker] = [], include: list[Worker] = []):
-    # primeiro vemos se foi passada uma lista "forçada" para salvar os arquivos
-    forced_workers = list(set(include) - set(exclude))
-    if forced_workers:
-        return forced_workers[0]
-
-    # senao, é pq o arquivo é novo no sistema e elegemos outro
-    workers = db.get_all_workers()
-    available_workers = [w for w in workers if w not in exclude]
-    sorted_available_workers = sorted(available_workers, key=lambda w: w.used_storage)
-    return sorted_available_workers[0]
 
 
 def enqueue_worker_died(worker: Worker):
@@ -111,13 +100,12 @@ def send_copy_command(
         client_socket.sendall(filename_bytes)
         # Envia o novo worker a salvar uma copia
         client_socket.sendall(to_worker.key.encode())
-        db.add_object_to_worker(to_worker, filename, file_size)
-        print(
+        logging.info(
             f"Cópia de {from_worker.key} do objeto {filename} enviada para {to_worker.key}"
         )
 
     except Exception as e:
-        print(
+        logging.error(
             f"Erro ao copiar de {from_worker.key} o objeto {filename} para {to_worker.key}. Erro: ",
             e,
         )
@@ -132,9 +120,8 @@ def _process_dead_worker(dead_worker: Worker):
         obj = db.get_object_by(filename)
         if obj:
             from_worker = [w for w in obj.workers if w != dead_worker][0]
-            to_worker = select_worker(exclude=[dead_worker, from_worker])
+            to_worker = service.select_worker(exclude=[dead_worker, from_worker])
             send_copy_command(filename, file_size, from_worker, to_worker)
-            db.add_object(filename, [from_worker, to_worker])
     db.remove_worker(dead_worker, [fn.split(":")[0] for fn in files])
 
 

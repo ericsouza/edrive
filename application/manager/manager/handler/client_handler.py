@@ -1,34 +1,32 @@
-import struct
+import db
+import service
+import socket
+import logging
 
-from processor import enqueue_image
+def get_workers_selection(connection: socket.socket, filename: str):            
+    stored_object = db.get_object_by(filename)
+    # se o arquivo já existe e estamos recebendo uma nova copia
+    # então, na realidade temos uma atualização e precisamos forçar que
+    # essa atualização seja feita nos servidores onde o objeto já existe.
+    # o parametro include serve justamente pra forçarmos os servidores
+    include = stored_object.workers if stored_object else []
+    logging.info(f"Host forced to include: {[x.host for x in include]}")
+    primary_worker = service.select_worker(include=include)
+    secondary_worker = service.select_worker(exclude=[primary_worker], include=include)
+    response = f"{primary_worker.key}::{secondary_worker.key}"
+    connection.sendall(response.encode())
 
+router = {
+    "bk": get_workers_selection # bk -> backup object
+}
 
 def handle_client(connection):
     try:
         # Recebe o tamanho do nome do arquivo
-        raw_msglen = connection.recv(4)
-        if not raw_msglen:
-            return
-        msglen = struct.unpack(">I", raw_msglen)[0]
-
-        # Recebe o nome do arquivo
-        filename = connection.recv(msglen).decode().strip()
-
-        # Abre um arquivo para escrita
-        with open(f"files/{filename}", "wb") as f:
-            while True:
-                data = connection.recv(8192)  # Lê em blocos maiores
-                if not data:
-                    break
-                f.write(data)
-
-        print(f"Imagem salva como {filename}")
-
-        # Envia o nome do arquivo para a fila
-        enqueue_image(filename)
-
-    # except Exception as e:
-    #     print(f"Erro ao salvar o arquivo: {e}")
+        command, filename = connection.recv(1024).decode().split("::")
+        router[command](connection, filename)
+    except Exception as e:
+        logging.error(f"Erro ao selecionar os workers: {e}", e)
 
     finally:
         connection.close()

@@ -44,7 +44,8 @@ services:
       context: ./worker
       dockerfile: Dockerfile
     environment:
-      MANAGER_HOST: manager
+      - MANAGER_HOST=manager
+      - REDIS_HOST=redis
     networks:
       - edrive
     depends_on:
