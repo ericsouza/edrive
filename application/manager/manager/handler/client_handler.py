@@ -10,11 +10,10 @@ def get_workers_selection(connection: socket.socket, filename: str):
     # essa atualização seja feita nos servidores onde o objeto já existe.
     # o parametro include serve justamente pra forçarmos os servidores
     include = stored_object.workers if stored_object else []
-    logging.warn(f"DEBUG 1: {[x.host for x in include]}")
+    logging.info(f"Host forced to include: {[x.host for x in include]}")
     primary_worker = service.select_worker(include=include)
     secondary_worker = service.select_worker(exclude=[primary_worker], include=include)
     response = f"{primary_worker.key}::{secondary_worker.key}"
-    logging.warn(f"DEBUG 2: {response}")
     connection.sendall(response.encode())
 
 router = {

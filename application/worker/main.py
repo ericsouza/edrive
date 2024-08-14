@@ -7,6 +7,7 @@ import logging
 from pathlib import Path
 import shutil
 import db
+import time
 
 logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
@@ -59,6 +60,9 @@ def copy_object_to_worker(filename: str, whost, wport):
         with open(f"{FILES_FOLDER_NAME}/{filename}", "rb") as f:
             while chunk := f.read(8192):  # Lê em blocos maiores
                 client_socket.sendall(chunk)
+        file_size = stat(f"{FILES_FOLDER_NAME}/{filename}").st_size
+        db.add_object_to_worker(worker_public_host, worker_port, filename, file_size)
+        db.add_object(filename, worker_public_host, worker_port)
     except Exception as e:
         logging.error(f"Erro ao copiar o arquivo {filename}. Erro: {e}")
 
@@ -86,6 +90,7 @@ def copy_object_handler(connection: socket.socket, filename: str):
     new_worker = connection.recv(1024).decode()
     new_worker_host, new_worker_port = new_worker.split(":")
     logging.info(f"Copiando arquivo {filename} para {new_worker}")
+    time.sleep(2)
     copy_object_to_worker(filename, new_worker_host, int(new_worker_port))
 
 

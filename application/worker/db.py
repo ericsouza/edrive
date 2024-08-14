@@ -9,7 +9,6 @@ _r = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 def add_object_to_worker(whost, wport, filename: str, file_size: int):
     objects_in_worker = get_all_objects_by(whost, wport)
-    logging.info(f"WORKER 1 {objects_in_worker}")
     already_present_object = None
     for obj in objects_in_worker:
         if obj.split(":")[0] == filename:
@@ -34,7 +33,6 @@ def get_all_objects_by(whost, wport):
 
 def add_object(filename, whost, wport):
     current_workers = _r.get(f"file:{filename}")
-    logging.info(f"WORKER 2 {current_workers}")
     if not current_workers or current_workers.split("::")[0] == '':
         _r.set(f"file:{filename}", f"{whost}:{wport}")
         return

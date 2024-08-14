@@ -100,7 +100,6 @@ def send_copy_command(
         client_socket.sendall(filename_bytes)
         # Envia o novo worker a salvar uma copia
         client_socket.sendall(to_worker.key.encode())
-        db.add_object_to_worker(to_worker, filename, file_size)
         logging.info(
             f"Cópia de {from_worker.key} do objeto {filename} enviada para {to_worker.key}"
         )
@@ -123,7 +122,6 @@ def _process_dead_worker(dead_worker: Worker):
             from_worker = [w for w in obj.workers if w != dead_worker][0]
             to_worker = service.select_worker(exclude=[dead_worker, from_worker])
             send_copy_command(filename, file_size, from_worker, to_worker)
-            db.add_object(filename, [from_worker, to_worker])
     db.remove_worker(dead_worker, [fn.split(":")[0] for fn in files])
 
 
